@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from bidict import bidict
 
 from src.datasets.managers import AbstractDataset
 
@@ -9,9 +10,7 @@ def calculate_forecasts(dataset: AbstractDataset, config, x_test: np.ndarray, y_
     batch = 1
 
     # Make Global Variables to be Used
-    categorical_vocab = dataset._cat_vocabs.get('categorical_id')
-    # Convert it to id <-> cat_id
-    inv_categorical_vocab = {v: k for k, v in categorical_vocab.items()}
+    categorical_vocab = bidict(dataset._cat_vocabs.get('categorical_id'))
     # Get the Target Scalers
     target_scalers = dataset._targ_scaler_objs
 
@@ -35,8 +34,12 @@ def calculate_forecasts(dataset: AbstractDataset, config, x_test: np.ndarray, y_
         category = np.unique(x_test_slice[:, :, 4])
 
         assert len(category) == 1
-        category = inv_categorical_vocab[category[0]]
-        scaler = target_scalers[category]
+        category = categorical_vocab.inverse[category[0]]
+        if category in target_scalers.keys():
+            scaler = target_scalers[category]
+        elif int(category) in target_scalers.keys():
+            scaler = target_scalers[int(category)]
+
         y_act_res = scaler.inverse_transform(y_test_slice)
         y_exp_res = scaler.inverse_transform(y_pred_slice)
 
