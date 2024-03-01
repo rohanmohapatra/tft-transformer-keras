@@ -168,7 +168,8 @@ class AbstractDataset:
         such inputs exist.
         """
         if self._unknown_cat_vocab_sz is not None and self._unknown_cat_idx is not None:
-            assert len(self._unknown_cat_vocab_sz) == len(self._unknown_cat_idx)
+            assert len(self._unknown_cat_vocab_sz) == len(
+                self._unknown_cat_idx)
             return self._unknown_cat_vocab_sz
         else:
             return None
@@ -237,15 +238,19 @@ class AbstractDataset:
         if not os.path.exists(features_fp):
             self._create_features()
         else:
-            print(f'Preparing dataset using precalculated features: {features_fp}')
+            print(
+                f'Preparing dataset using precalculated features: {features_fp}')
 
         features_df = pd.read_csv(features_fp, index_col=0)
 
         train_df, val_df, test_df = self._split(features_df)
 
-        x_train, y_train = self._fit_transform(train_df, shuffle=True, dataset_tag='training')
-        x_val, y_val = self._transform_and_batch(val_df, dataset_tag='validation')
-        x_test, y_test = self._transform_and_batch(test_df, dataset_tag='testing')
+        x_train, y_train = self._fit_transform(
+            train_df, shuffle=True, dataset_tag='training')
+        x_val, y_val = self._transform_and_batch(
+            val_df, dataset_tag='validation')
+        x_test, y_test = self._transform_and_batch(
+            test_df, dataset_tag='testing')
 
         return (x_train, y_train), (x_val, y_val), (x_test, y_test)
 
@@ -259,12 +264,14 @@ class AbstractDataset:
         wget.download(self.data_url, dl_fp)
 
     def _data_exists(self) -> bool:
-        dataset_fp = os.path.join(Paths.data_base_dir, self.name)  # type: ignore
+        dataset_fp = os.path.join(
+            Paths.data_base_dir, self.name)  # type: ignore
         # Fixes: a bug where it just checks if the path exists, it should list dirs and check if there is anything in it
         return len(os.listdir(dataset_fp)) != 0
 
     def _make_dataset_dir(self) -> Any:
-        dataset_fp = os.path.join(Paths.data_base_dir, self.name)  # type: ignore
+        dataset_fp = os.path.join(
+            Paths.data_base_dir, self.name)  # type: ignore
         if not os.path.exists(dataset_fp):
             os.makedirs(dataset_fp)
         return dataset_fp
@@ -285,7 +292,8 @@ class AbstractDataset:
                        dataset_tag: str = '') -> Tuple[np.ndarray, np.ndarray]:
         self._fit(data)
 
-        x = self._transform_and_batch(data, shuffle=shuffle, dataset_tag=dataset_tag)
+        x = self._transform_and_batch(
+            data, shuffle=shuffle, dataset_tag=dataset_tag)
         return x
 
     def _fit(self, train_df: pd.DataFrame) -> None:
@@ -305,7 +313,6 @@ class AbstractDataset:
         # make sure that expected columns exist in the dataset
         for c in self._input_cols:
             assert c[0] in col_names
-
 
         targ_cols = self.target_columns
 
@@ -349,8 +356,10 @@ class AbstractDataset:
 
         if len(cat_cols) > 0:
             for cat_col in cat_cols:
-                cat_names = list(set(data[cat_col].astype(str).values.tolist()))
-                cat2idx = {self._unknown_category_name: 0}  # fall-back class for unseen data
+                cat_names = list(
+                    set(data[cat_col].astype(str).values.tolist()))
+                # fall-back class for unseen data
+                cat2idx = {self._unknown_category_name: 0}
                 for i, c in enumerate(sorted(cat_names)):
                     cat2idx[c] = i+1
 
@@ -370,32 +379,43 @@ class AbstractDataset:
                                     self.unknown_categorical_columns + self.static_categorical_columns +
                                     self.static_numeric_columns)
 
-        self._targ_idx = [transformed_df_col_names.index(c) for c in self.target_columns]
-        self._known_num_idx = [transformed_df_col_names.index(c) for c in self.known_numeric_columns]
-        self._unknown_num_idx = [transformed_df_col_names.index(c) for c in self.unknown_numeric_columns]
-        self._known_cat_idx = [transformed_df_col_names.index(c) for c in self.known_categorical_columns]
-        self._unknown_cat_idx = [transformed_df_col_names.index(c) for c in self.unknown_categorical_columns]
-        self._static_num_idx = [transformed_df_col_names.index(c) for c in self.static_numeric_columns]
-        self._static_cat_idx = [transformed_df_col_names.index(c) for c in self.static_categorical_columns]
+        self._targ_idx = [transformed_df_col_names.index(
+            c) for c in self.target_columns]
+        self._known_num_idx = [transformed_df_col_names.index(
+            c) for c in self.known_numeric_columns]
+        self._unknown_num_idx = [transformed_df_col_names.index(
+            c) for c in self.unknown_numeric_columns]
+        self._known_cat_idx = [transformed_df_col_names.index(
+            c) for c in self.known_categorical_columns]
+        self._unknown_cat_idx = [transformed_df_col_names.index(
+            c) for c in self.unknown_categorical_columns]
+        self._static_num_idx = [transformed_df_col_names.index(
+            c) for c in self.static_numeric_columns]
+        self._static_cat_idx = [transformed_df_col_names.index(
+            c) for c in self.static_categorical_columns]
 
         # calculate the size of the vocab in each case so that the model know
         # the size of embeddings to initialize
         if self.known_categorical_columns:
             for col_name in self.known_categorical_columns:
-                self._known_cat_vocab_sz.append(len(self._cat_vocabs[col_name]))
+                self._known_cat_vocab_sz.append(
+                    len(self._cat_vocabs[col_name]))
         if self.unknown_categorical_columns:
             for col_name in self.unknown_categorical_columns:
-                self._unknown_cat_vocab_sz.append(len(self._cat_vocabs[col_name]))
+                self._unknown_cat_vocab_sz.append(
+                    len(self._cat_vocabs[col_name]))
         if self.static_categorical_columns:
             for col_name in self.static_categorical_columns:
-                self._static_cat_vocab_sz.append(len(self._cat_vocabs[col_name]))
+                self._static_cat_vocab_sz.append(
+                    len(self._cat_vocabs[col_name]))
 
     def _transform_and_batch(self, data: pd.DataFrame, shuffle: bool = False, dataset_tag: str = '') -> (
             Tuple)[np.ndarray, np.ndarray]:
         xs, ys = [], []
         targ_cols = self.target_columns
         num_cols = self.known_numeric_columns + self.unknown_numeric_columns
-        cat_cols = self.known_categorical_columns + self.unknown_categorical_columns + self.static_categorical_columns
+        cat_cols = self.known_categorical_columns + \
+            self.unknown_categorical_columns + self.static_categorical_columns
         stat_num = self.static_numeric_columns
 
         all_cols = targ_cols + num_cols + cat_cols + stat_num
@@ -425,7 +445,8 @@ class AbstractDataset:
                 for cat_col in cat_cols:
                     cat2id = self._cat_vocabs[cat_col]
                     cat_df = df[cat_col].astype(str).values.tolist()
-                    ids_array = np.array([cat2id.get(c, cat2id[self._unknown_category_name]) for c in cat_df]).reshape(-1, 1)
+                    ids_array = np.array([cat2id.get(
+                        c, cat2id[self._unknown_category_name]) for c in cat_df]).reshape(-1, 1)
 
                     x_full = np.hstack((x_full, ids_array))
 
@@ -460,14 +481,16 @@ class AbstractDataset:
             ys_array = ys_array[indices]
 
         if self._sample_sz is not None:
-            print(f'Sampling {dataset_tag} dataset to {self._sample_sz} examples')
+            print(
+                f'Sampling {dataset_tag} dataset to {self._sample_sz} examples')
             xs_array = xs_array[:self._sample_sz, ...]
             ys_array = ys_array[:self._sample_sz, ...]
 
         return xs_array, ys_array
 
     def _make_features_dataset_filepath(self):
-        out_fp = os.path.join(Paths.data_base_dir, self.name, self.features_filename)
+        out_fp = os.path.join(Paths.data_base_dir,
+                              self.name, self.features_filename)
         return out_fp
 
     @staticmethod
@@ -520,7 +543,8 @@ class ElectricityDataset(AbstractDataset):
 
     def _create_features(self):
         print('Extracting features from raw dataset ...')
-        fp = os.path.join(Paths.data_base_dir, self.name, self.unzip_dir, self.filename)
+        fp = os.path.join(Paths.data_base_dir, self.name,
+                          self.unzip_dir, self.filename)
         data = pd.read_csv(fp, index_col=0, sep=';', decimal=',')
         data.index = pd.to_datetime(data.index)
         data = data.sort_index()
@@ -534,7 +558,8 @@ class ElectricityDataset(AbstractDataset):
             start_date = min(cl_data.ffill().dropna().index)
             end_data = max(cl_data.bfill().dropna().index)
 
-            valid_range = (cl_data.index >= start_date) & (cl_data.index <= end_data)
+            valid_range = (cl_data.index >= start_date) & (
+                cl_data.index <= end_data)
             cl_data = cl_data[valid_range].fillna(0.)
 
             cl_out_df = pd.DataFrame({'power_usage': cl_data})
@@ -568,12 +593,12 @@ class TrafficDataset(AbstractDataset):
     data_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00204/PEMS-SF.zip'
     features_filename = 'traffic_features.csv'
     _input_cols = [
-      ('id', ValueTypes.EXAMPLE_ID),
-      ('hours_from_start', ValueTypes.KNOWN_NUMERIC),
-      ('values', ValueTypes.TARGET),
-      ('time_on_day', ValueTypes.KNOWN_NUMERIC),
-      ('day_of_week', ValueTypes.KNOWN_CATEGORICAL),
-      ('categorical_id', ValueTypes.STATIC_CATEGORICAL),
+        ('id', ValueTypes.EXAMPLE_ID),
+        ('hours_from_start', ValueTypes.KNOWN_NUMERIC),
+        ('values', ValueTypes.TARGET),
+        ('time_on_day', ValueTypes.KNOWN_NUMERIC),
+        ('day_of_week', ValueTypes.KNOWN_CATEGORICAL),
+        ('categorical_id', ValueTypes.STATIC_CATEGORICAL),
     ]
 
     def __init__(self,
@@ -591,8 +616,10 @@ class TrafficDataset(AbstractDataset):
     def _create_features(self):
         # a copy of the original implementation
         data_folder = os.path.join(self._make_dataset_dir(), self.unzip_dir)
-        shuffle_order = np.array(self._read_single_list(data_folder, 'randperm')) - 1  # index from 0
-        train_dayofweek = self._read_single_list(data_folder, 'PEMS_trainlabels')
+        shuffle_order = np.array(self._read_single_list(
+            data_folder, 'randperm')) - 1  # index from 0
+        train_dayofweek = self._read_single_list(
+            data_folder, 'PEMS_trainlabels')
         train_tensor = self._read_matrix(data_folder, 'PEMS_train')
         test_dayofweek = self._read_single_list(data_folder, 'PEMS_testlabels')
         test_tensor = self._read_matrix(data_folder, 'PEMS_test')
@@ -618,7 +645,8 @@ class TrafficDataset(AbstractDataset):
 
         # Put everything back into a dataframe
         print('Parsing as dataframe')
-        labels = ['traj_{}'.format(i) for i in self._read_single_list(data_folder, 'stations_list')]
+        labels = ['traj_{}'.format(i) for i in self._read_single_list(
+            data_folder, 'stations_list')]
 
         hourly_list = []
         for day, day_matrix in enumerate(combined_tensor):
@@ -631,14 +659,16 @@ class TrafficDataset(AbstractDataset):
                 raise ValueError('Invalid hour! {}-{}'.format(
                     hourly['hour_on_day'].min(), hourly['hour_on_day'].max()))
 
-            hourly = hourly.groupby('hour_on_day', as_index=True).mean()[labels]
+            hourly = hourly.groupby(
+                'hour_on_day', as_index=True).mean()[labels]
             hourly['sensor_day'] = day
             hourly['time_on_day'] = hourly.index
             hourly['day_of_week'] = day_of_week[day]
 
             hourly_list.append(hourly)
 
-        hourly_frame = pd.concat(hourly_list, axis=0, ignore_index=True, sort=False)
+        hourly_frame = pd.concat(
+            hourly_list, axis=0, ignore_index=True, sort=False)
 
         # Flatten such that each entity uses one row in dataframe
         store_columns = [c for c in hourly_frame.columns if 'traj' in c]
@@ -656,8 +686,8 @@ class TrafficDataset(AbstractDataset):
 
             # Sort by Sensor-date-time
             key = sliced['id'].apply(str) \
-                  + sliced['sensor_day'].apply(lambda x: '_' + self._format_index_string(x)) \
-                  + sliced['time_on_day'].apply(lambda x: '_' + self._format_index_string(x))
+                + sliced['sensor_day'].apply(lambda x: '_' + self._format_index_string(x)) \
+                + sliced['time_on_day'].apply(lambda x: '_' + self._format_index_string(x))
             sliced = sliced.set_index(key).sort_index()
 
             sliced['values'] = sliced['values'].ffill()
@@ -674,7 +704,8 @@ class TrafficDataset(AbstractDataset):
 
         # Creating columns fo categorical inputs
         flat_df['categorical_id'] = flat_df['id'].copy()
-        flat_df['hours_from_start'] = flat_df['time_on_day'] + flat_df['sensor_day'] * 24.
+        flat_df['hours_from_start'] = flat_df['time_on_day'] + \
+            flat_df['sensor_day'] * 24.
         flat_df['categorical_day_of_week'] = flat_df['day_of_week'].copy()
         flat_df['categorical_time_on_day'] = flat_df['time_on_day'].copy()
 
@@ -698,9 +729,11 @@ class TrafficDataset(AbstractDataset):
     def _process_list(s, variable_type=int, delimiter=None):
         """Parses a line in the PEMS format to a list."""
         if delimiter is None:
-            l = [variable_type(i) for i in s.replace('[', '').replace(']', '').split()]
+            l = [variable_type(i) for i in s.replace(
+                '[', '').replace(']', '').split()]
         else:
-            l = [variable_type(i) for i in s.replace('[', '').replace(']', '').split(delimiter)]
+            l = [variable_type(i) for i in s.replace(
+                '[', '').replace(']', '').split(delimiter)]
 
         return l
 
@@ -711,31 +744,33 @@ class TrafficDataset(AbstractDataset):
         return l
 
     def _read_matrix(self, data_folder, filename):
-            """Returns a matrix from a file in the PEMS-custom format."""
-            array_list = []
-            with open(os.path.join(data_folder, filename), 'r') as dat:
+        """Returns a matrix from a file in the PEMS-custom format."""
+        array_list = []
+        with open(os.path.join(data_folder, filename), 'r') as dat:
 
-                lines = dat.readlines()
-                for i, line in enumerate(lines):
-                    if (i + 1) % 50 == 0:
-                        print('Completed {} of {} rows for {}'.format(i + 1, len(lines),
-                                                                      filename))
+            lines = dat.readlines()
+            for i, line in enumerate(lines):
+                if (i + 1) % 50 == 0:
+                    print('Completed {} of {} rows for {}'.format(i + 1, len(lines),
+                                                                  filename))
 
-                    array = [
-                        self._process_list(row_split, variable_type=float, delimiter=None)
-                        for row_split in self._process_list(
-                            line, variable_type=str, delimiter=';')
-                    ]
-                    array_list.append(array)
+                array = [
+                    self._process_list(
+                        row_split, variable_type=float, delimiter=None)
+                    for row_split in self._process_list(
+                        line, variable_type=str, delimiter=';')
+                ]
+                array_list.append(array)
 
-            return array_list
+        return array_list
 
     def _split(self, features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         valid_boundary = 151
         test_boundary = 166
         index = features_df['sensor_day']
         train_df = features_df.loc[index < valid_boundary]
-        valid_df = features_df.loc[(index >= valid_boundary - 7) & (index < test_boundary)]
+        valid_df = features_df.loc[(
+            index >= valid_boundary - 7) & (index < test_boundary)]
         test_df = features_df.loc[index >= test_boundary - 7]
         return train_df, valid_df, test_df
 
@@ -758,7 +793,8 @@ class FavoritaDataset(AbstractDataset):
         ('oil', ValueTypes.UNKNOWN_NUMERIC),
         ('day_of_week', ValueTypes.KNOWN_CATEGORICAL),
         ('day_of_month', ValueTypes.KNOWN_CATEGORICAL),
-        ('month', ValueTypes.KNOWN_CATEGORICAL),  # could also be numeric like the ones above
+        # could also be numeric like the ones above
+        ('month', ValueTypes.KNOWN_CATEGORICAL),
         ('national_hol', ValueTypes.KNOWN_CATEGORICAL),
         ('regional_hol', ValueTypes.KNOWN_CATEGORICAL),
         ('local_hol', ValueTypes.KNOWN_CATEGORICAL),
@@ -813,12 +849,18 @@ class FavoritaDataset(AbstractDataset):
         print('Regenerating data...')
 
         # load temporal data
-        temporal = pd.read_csv(os.path.join(data_folder, 'train.csv'), index_col=0)
-        store_info = pd.read_csv(os.path.join(data_folder, 'stores.csv'), index_col=0)
-        oil = pd.read_csv(os.path.join(data_folder, 'oil.csv'), index_col=0).iloc[:, 0]
-        holidays = pd.read_csv(os.path.join(data_folder, 'holidays_events.csv'))
-        items = pd.read_csv(os.path.join(data_folder, 'items.csv'), index_col=0)
-        transactions = pd.read_csv(os.path.join(data_folder, 'transactions.csv'))
+        temporal = pd.read_csv(os.path.join(
+            data_folder, 'train.csv'), index_col=0)
+        store_info = pd.read_csv(os.path.join(
+            data_folder, 'stores.csv'), index_col=0)
+        oil = pd.read_csv(os.path.join(
+            data_folder, 'oil.csv'), index_col=0).iloc[:, 0]
+        holidays = pd.read_csv(os.path.join(
+            data_folder, 'holidays_events.csv'))
+        items = pd.read_csv(os.path.join(
+            data_folder, 'items.csv'), index_col=0)
+        transactions = pd.read_csv(
+            os.path.join(data_folder, 'transactions.csv'))
 
         # Take first 6 months of data
         temporal['date'] = pd.to_datetime(temporal['date'])
@@ -841,7 +883,8 @@ class FavoritaDataset(AbstractDataset):
         print('Removing returns data')
         min_returns = temporal['unit_sales'].groupby(temporal['traj_id']).min()
         valid_ids = set(min_returns[min_returns >= 0].index)
-        selector = temporal['traj_id'].apply(lambda traj_id: traj_id in valid_ids)
+        selector = temporal['traj_id'].apply(
+            lambda traj_id: traj_id in valid_ids)
         new_temporal = temporal[selector].copy()
         del temporal
         gc.collect()
@@ -860,7 +903,8 @@ class FavoritaDataset(AbstractDataset):
             sub_df['date'] = sub_df.index
             sub_df[['store_nbr', 'item_nbr', 'onpromotion']] \
                 = sub_df[['store_nbr', 'item_nbr', 'onpromotion']].ffill()
-            sub_df['open'] = sub_df['open'].fillna(0)  # flag where sales data is unknown
+            sub_df['open'] = sub_df['open'].fillna(
+                0)  # flag where sales data is unknown
             sub_df['log_sales'] = np.log(sub_df['unit_sales'])
 
             resampled_dfs.append(sub_df.reset_index(drop=True))
@@ -899,7 +943,8 @@ class FavoritaDataset(AbstractDataset):
         temporal['transactions'] = temporal['transactions'].fillna(-1)
 
         # Additional date info
-        temporal['day_of_week'] = pd.to_datetime(temporal['date'].values).dayofweek
+        temporal['day_of_week'] = pd.to_datetime(
+            temporal['date'].values).dayofweek
         temporal['day_of_month'] = pd.to_datetime(temporal['date'].values).day
         temporal['month'] = pd.to_datetime(temporal['date'].values).month
 
@@ -967,3 +1012,9 @@ class FavoritaDataset(AbstractDataset):
         test_df = pd.concat(df_lists['test'], axis=0)
 
         return train_df, val_df, test_df
+
+
+@register_dataset
+class VolatilityDataset(AbstractDataset):
+    def __init__(self, ts_len: int, n_enc_steps: int, sample_sz: int | None = None, unknown_category_name: str = 'other', **kwargs):
+        super().__init__(ts_len, n_enc_steps, sample_sz, unknown_category_name, **kwargs)

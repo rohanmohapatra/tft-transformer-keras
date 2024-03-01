@@ -46,6 +46,11 @@ model_init_args.add_argument(
     help='If a path is provided, model will be initialized with these weights. Use this '
          'option to resume training.',
     type=str)
+model_init_args.add_argument(
+    '--n_heads',
+    default=4,
+    help='Number of attention heads.',
+    type=int)
 
 training_args = parser.add_argument_group(
     title='Model training arguments',

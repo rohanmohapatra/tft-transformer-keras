@@ -4,6 +4,7 @@ class Paths:
 
 class Config:
     """General configuration file."""
+
     def __init__(self, args):
         # general configuration
         self.dataset = args.dataset
@@ -15,6 +16,7 @@ class Config:
         self.quantiles = [0.1, 0.5, 0.9]
         self.ts_len = args.n_enc_steps + args.n_dec_steps
         self.load_model_weights = args.load_model_weights
+        self.n_heads = args.n_heads
         # training
         self.sample_sz = args.sample_sz if args.sample_sz > 0 else None
         self.epochs = args.epochs
