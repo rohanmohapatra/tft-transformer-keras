@@ -38,6 +38,7 @@ def build_model(config, dset, x_train):
         quantiles=config.quantiles,
         dropout_rate=config.dropout_rate,
         l2_reg=config.l2_reg,
+        n_heads=config.n_heads,
     )
     model.build(input_shape=x_train.shape)
     if config.load_model_weights is not None:
