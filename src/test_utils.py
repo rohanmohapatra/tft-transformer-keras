@@ -6,6 +6,26 @@ from src.datasets.managers import AbstractDataset
 
 
 def calculate_forecasts(dataset: AbstractDataset, config, x_test: np.ndarray, y_test: np.ndarray, y_pred: np.ndarray, verbose: bool = False) -> dict:
+    """Calculates P forecasts based on the original paper.
+
+    Parameters
+    ----------
+    dataset : AbstractDataset
+    config : Dict
+    x_test : np.ndarray
+        The true testing inputs.
+    y_test : np.ndarray
+        The true testing target.
+    y_pred : np.ndarray
+        The model predicted targe.
+    verbose : bool, optional
+        Verbosity for printing logs, by default False.
+
+    Returns
+    -------
+    dict
+        Calculate q-risk scores.
+    """
     # TODO: Make Batch Size Larger for bigger datasets
     batch = 1
 
@@ -56,10 +76,34 @@ def calculate_forecasts(dataset: AbstractDataset, config, x_test: np.ndarray, y_
     y_actual = y_actual.reshape(y_test.shape)
     y_expected = y_expected.reshape(y_pred.shape)
 
-    return _calculate_losses(quantiles=config.quantiles, y_actual=y_actual, y_expected=y_expected, n_targets=len(dataset._targ_idx))
+    return _calculate_q_risk(quantiles=config.quantiles, y_actual=y_actual, y_expected=y_expected, n_targets=len(dataset._targ_idx))
 
 
-def _calculate_losses(quantiles: list, y_actual: np.ndarray, y_expected: np.ndarray, n_targets: int):
+def _calculate_q_risk(quantiles: list, y_actual: np.ndarray, y_expected: np.ndarray, n_targets: int):
+    """ 
+    Q-Risk (z, z') = 2 Σ(i,t) P(zₜ (i), zₜ' (i)) / Σ(i,t) |zₜ' (i)|
+
+    where, P(z, z') = q( z - z' ) if z > z' else (1 - q) ( z' - z )
+
+    Refer this paper https://proceedings.neurips.cc/paper_files/paper/2018/file/5cf68969fb67aa6082363a6d4e6468e2-Paper.pdf
+    for the q-risk calculation
+
+    Parameters
+    ----------
+    quantiles : list
+        A list of quantiles to predict. 
+    y_actual : np.ndarray
+        The true target.
+    y_expected : np.ndarray
+        The expected target.
+    n_targets : int
+        Number of target values.
+
+    Returns
+    -------
+    dict
+        A loss map with forecasts for each quantile.
+    """
     output_map = {
         'p{}'.format(int(q * 100)):
         y_expected[Ellipsis, i * n_targets:(i + 1) * n_targets]
