@@ -1031,6 +1031,7 @@ class VolatilityDataset(AbstractDataset):
         ('week_of_year', ValueTypes.KNOWN_CATEGORICAL),
         ('month', ValueTypes.KNOWN_CATEGORICAL),
         ('Region', ValueTypes.STATIC_CATEGORICAL),
+        ('categorical_id', ValueTypes.STATIC_CATEGORICAL),
     ]
 
     def __init__(self, ts_len: int, n_enc_steps: int, sample_sz: int | None = None, unknown_category_name: str = 'other', **kwargs):
@@ -1100,7 +1101,6 @@ class VolatilityDataset(AbstractDataset):
         df['year'] = dates.year
 
         df['id'] = df['Symbol'].copy()
-        # TODO: Is it required?
         df['categorical_id'] = df['Symbol'].copy()
 
         # Processes log volatility
