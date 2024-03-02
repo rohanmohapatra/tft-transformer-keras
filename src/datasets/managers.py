@@ -3,6 +3,7 @@ import glob
 import os
 import random
 import shutil
+import datetime
 from abc import abstractmethod
 from typing import List, Tuple, Any
 
@@ -1016,5 +1017,111 @@ class FavoritaDataset(AbstractDataset):
 
 @register_dataset
 class VolatilityDataset(AbstractDataset):
+    name = 'volatility'
+    data_url = 'https://github.com/rohanmohapatra/quietly-retired-datasets/raw/main/datasets/volatility/oxfordmanrealizedvolatilityindices.zip'
+    filename = 'oxfordmanrealizedvolatilityindices.csv'
+    features_filename = 'volatility_features.csv'
+    _input_cols = [
+        ('id', ValueTypes.EXAMPLE_ID),
+        ('log_vol', ValueTypes.TARGET),
+        ('open_to_close', ValueTypes.UNKNOWN_NUMERIC),
+        ('days_from_start', ValueTypes.KNOWN_NUMERIC),
+        ('day_of_week', ValueTypes.KNOWN_CATEGORICAL),
+        ('day_of_month', ValueTypes.KNOWN_CATEGORICAL),
+        ('week_of_year', ValueTypes.KNOWN_CATEGORICAL),
+        ('month', ValueTypes.KNOWN_CATEGORICAL),
+        ('Region', ValueTypes.STATIC_CATEGORICAL),
+    ]
+
     def __init__(self, ts_len: int, n_enc_steps: int, sample_sz: int | None = None, unknown_category_name: str = 'other', **kwargs):
         super().__init__(ts_len, n_enc_steps, sample_sz, unknown_category_name, **kwargs)
+        self._symbol_region_mapping = {
+            '.AEX': 'EMEA',
+            '.AORD': 'APAC',
+            '.BFX': 'EMEA',
+            '.BSESN': 'APAC',
+            '.BVLG': 'EMEA',
+            '.BVSP': 'AMER',
+            '.DJI': 'AMER',
+            '.FCHI': 'EMEA',
+            '.FTMIB': 'EMEA',
+            '.FTSE': 'EMEA',
+            '.GDAXI': 'EMEA',
+            '.GSPTSE': 'AMER',
+            '.HSI': 'APAC',
+            '.IBEX': 'EMEA',
+            '.IXIC': 'AMER',
+            '.KS11': 'APAC',
+            '.KSE': 'APAC',
+            '.MXX': 'AMER',
+            '.N225': 'APAC ',
+            '.NSEI': 'APAC',
+            '.OMXC20': 'EMEA',
+            '.OMXHPI': 'EMEA',
+            '.OMXSPI': 'EMEA',
+            '.OSEAX': 'EMEA',
+            '.RUT': 'EMEA',
+            '.SMSI': 'EMEA',
+            '.SPX': 'AMER',
+            '.SSEC': 'APAC',
+            '.SSMI': 'EMEA',
+            '.STI': 'APAC',
+            '.STOXX50E': 'EMEA'
+        }
+
+    def _split(self, features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        val_set_boundary = 2015  # 2015, but using because this is an older dataset
+        test_set_boundary = 2017  # 2018, but using because this is an older dataset
+
+        index = features_df['year']
+        train_df = features_df.loc[index < val_set_boundary].copy()
+        val_df = features_df.loc[(index >= val_set_boundary) &
+                                 (index < test_set_boundary)].copy()
+        test_df = features_df.loc[index >= test_set_boundary].copy()
+
+        return train_df, val_df, test_df
+
+    def _create_features(self):
+        # a copy of the original implementation
+        fp = os.path.join(Paths.data_base_dir, self.name,
+                          self.unzip_dir, self.filename)
+        df = pd.read_csv(fp, index_col=0)  # no explicit index
+
+        # Adds additional date/day fields
+        # ignore timezones, we don't need them
+        idx = [str(s).split('+')[0] for s in df.index]
+        dates = pd.to_datetime(idx)
+        df['date'] = dates
+        df['days_from_start'] = (dates - datetime.datetime(2000, 1, 3)).days
+        df['day_of_week'] = dates.dayofweek
+        df['day_of_month'] = dates.day
+        df['week_of_year'] = dates.weekofyear
+        df['month'] = dates.month
+        df['year'] = dates.year
+
+        df['id'] = df['Symbol'].copy()
+        # TODO: Is it required?
+        df['categorical_id'] = df['Symbol'].copy()
+
+        # Processes log volatility
+        vol = df['rv5_ss'].copy()
+        vol.loc[vol == 0.] = np.nan
+        df['log_vol'] = np.log(vol)
+
+        # Adds static information
+        df['Region'] = df['Symbol'].apply(
+            lambda k: self._symbol_region_mapping[k])
+
+        # Performs final processing
+        dfs_with_features = []
+        for _, (symbol_id, symbol_group_df) in tqdm(enumerate(df.groupby('Symbol')), desc='Creating features ...'):
+            sliced = symbol_group_df.copy()
+            sliced.sort_values('days_from_start', inplace=True)
+            # Impute log volatility values
+            sliced['log_vol'].fillna(method='ffill', inplace=True)
+            sliced.dropna()
+            dfs_with_features.append(sliced)
+
+        out_df = pd.concat(dfs_with_features, axis=0)
+        out_fp = self._make_features_dataset_filepath()
+        out_df.to_csv(out_fp)
