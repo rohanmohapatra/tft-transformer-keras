@@ -998,7 +998,7 @@ class FavoritaDataset(AbstractDataset):
             train_len = len(train)
             valid_len = train_len + forecast_horizon
             valid = sliced.iloc[train_len - lookback:valid_len+14, :]
-            test = sliced.iloc[valid_len + 14 - lookback:, :]
+            test = sliced.iloc[valid_len - lookback:valid_len + forecast_horizon, :]
 
             sliced_map = {'train': train, 'valid': valid, 'test': test}
 
